@@ -1,0 +1,83 @@
+version: "3.9"
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-single
+
+    # PORTS
+    ports:
+      - "9094:9094"  # EXTERNAL listener mapping (host:9094 -> container:9094).
+                     # This port can be used to communicate from an external application to the container.
+                     # Example: your Python app on the host connects to localhost:9094.
+
+    environment:
+      # ---------- KRaft single-node (no ZooKeeper) ----------
+      KAFKA_PROCESS_ROLES: "broker,controller"   # This node acts as both the broker and the controller.
+      KAFKA_NODE_ID: "1"                          # Unique ID of this node in the cluster.
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"  # nodeId@host:controllerPort (internal address)
+
+      # Cluster storage identity (required by cp-kafka in KRaft):
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"       # Keep this stable across restarts of this cluster.
+
+      # ---------- Listeners ----------
+      # We declare three listeners:
+      #  - PLAINTEXT on 9092 (internal): this port is used for communication from container to container.
+      #  - CONTROLLER on 9093 (internal): controller quorum traffic; not for clients.
+      #  - EXTERNAL on 9094 (external): This port can be used to communicate from an external application to the container.
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094"
+
+      # What the broker advertises back to clients:
+      #  - PLAINTEXT uses the Docker service name + 9092 for container-to-container use.
+      #  - EXTERNAL uses localhost + 9094 so apps on your host can connect.
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094"
+
+      # Map each listener to plaintext (no TLS/SASL in this simple lab):
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+
+      # Inter-broker communications (if more nodes later) occur on the internal listener:
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"  # this port is used for communication from container to container.
+
+      # ---------- Dev-friendly defaults ----------
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"             # Create topics on first produce/consume.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"         # Single node ⇒ replication must be 1.
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+
+    volumes:
+      - kafka_single_data:/var/lib/kafka/data  # Persist broker state across restarts.
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-single
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"  # UI EXTERNAL mapping (host:8080 -> container:8080).
+                     # This port can be used to communicate from an external application to the container (your browser).
+                     # Open http://localhost:8080 on the host.
+    environment:
+      # Kafka UI runs as a container; it reaches Kafka via the internal Docker network:
+      KAFKA_CLUSTERS_0_NAME: "single-local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"  # this port is used for communication from container to container.
+      KAFKA_CLUSTERS_0_READONLY: "false"
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "http://schema-registry:8081"
+
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    container_name: schema-registry-single
+    depends_on:
+      - kafka
+    ports:
+      - "8082:8081"   # Schema Registry REST API (http://localhost:8081)
+                      # This port can be used to communicate from host tools (curl, producers, etc.)
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      # Connects internally to the Kafka broker for storage of schemas
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:9092"
+
+volumes:
+  kafka_single_data:

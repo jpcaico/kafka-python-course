@@ -1,0 +1,155 @@
+version: "3.9"
+
+services:
+  # -------- Broker/Controller 1 --------
+  kafka-1:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-1
+
+    # PORTS
+    ports:
+      - "9094:9094"  # EXTERNAL mapping for node 1 (host:9094 -> container:9094).
+                     # This port can be used to communicate from an external application to the container.
+                     # Example: your host client lists multiple bootstrap servers incl. localhost:9094.
+
+    environment:
+      # Roles & identity
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "1"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+
+      # Controller quorum across all three nodes (internal addresses):
+      # These use container hostnames + controller ports; this port is used for communication from container to container.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093"
+
+      # All nodes in the same cluster share the same CLUSTER_ID:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
+      # Listeners:
+      #  - PLAINTEXT on 9092 (internal): this port is used for communication from container to container.
+      #  - CONTROLLER on 9093 (internal): controller quorum traffic; not for clients.
+      #  - EXTERNAL on 9094 (external): This port can be used to communicate from an external application to the container.
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094"
+
+      # What clients should dial (internal vs external):
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092,EXTERNAL://localhost:9094"
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"  # this port is used for communication from container to container.
+
+      # Replication settings aligned to 3 nodes:
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+    volumes:
+      - kafka1_data:/var/lib/kafka/data
+
+  # -------- Broker/Controller 2 --------
+  kafka-2:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-2
+
+    # PORTS
+    ports:
+      - "9095:9095"  # EXTERNAL mapping for node 2 (host:9095 -> container:9095).
+                     # This port can be used to communicate from an external application to the container.
+                     # Useful to test client failover by listing multiple bootstrap servers on the host.
+
+    environment:
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "2"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093"  # internal (container-to-container)
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
+      # Different EXTERNAL port for node 2:
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9095"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092,EXTERNAL://localhost:9095"
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"  # this port is used for communication from container to container.
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+    volumes:
+      - kafka2_data:/var/lib/kafka/data
+    depends_on:
+      - kafka-1
+
+  # -------- Broker/Controller 3 --------
+  kafka-3:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka-3
+
+    # PORTS
+    ports:
+      - "9096:9096"  # EXTERNAL mapping for node 3 (host:9096 -> container:9096).
+                     # This port can be used to communicate from an external application to the container.
+                     # Also useful for client-side multi-endpoint configuration on the host.
+
+    environment:
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "3"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093"  # internal (container-to-container)
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
+      # Different EXTERNAL port for node 3:
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9096"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-3:9092,EXTERNAL://localhost:9096"
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"  # this port is used for communication from container to container.
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+    volumes:
+      - kafka3_data:/var/lib/kafka/data
+    depends_on:
+      - kafka-1
+      - kafka-2
+
+  # -------- Kafka UI --------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-multi
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    ports:
+      - "8080:8080"  # UI EXTERNAL mapping (host:8080 -> container:8080).
+                     # This port can be used to communicate from an external application to the container (your browser).
+                     # Open http://localhost:8080 on the host.
+    environment:
+      # UI connects internally via Docker network names and internal ports:
+      KAFKA_CLUSTERS_0_NAME: "kraft-multi"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka-1:9092"  # this port is used for communication from container to container.
+      KAFKA_CLUSTERS_0_READONLY: "false"
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "http://schema-registry:8081"
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    container_name: schema-registry-multi
+    depends_on:
+      - kafka-1
+    ports:
+      - "8082:8081"  # REST API exposed on host
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka-1:9092"
+
+volumes:
+  kafka1_data:
+  kafka2_data:
+  kafka3_data:
