@@ -103,9 +103,9 @@ class KafkaConsumer:
                 if msg.error():
                     if msg.error().code() == KafkaError._PARTITION_EOF:
                         continue
-                else:
-                    logger.error(f"Consumer error: {msg.error()}")
-                    continue
+                    else:
+                        logger.error(f"Consumer error: {msg.error()}")
+                        continue
             
                 self.process_message(msg, process_callback)
         except KeyboardInterrupt:
