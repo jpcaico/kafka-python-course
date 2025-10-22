@@ -1,0 +1,13 @@
+{
+  "$id": "https://example.com/user-event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UserEvent",
+  "type": "object",
+  "properties": {
+    "user_id":  { "type": "integer" },
+    "event":    { "type": "string" },
+    "timestamp":{ "type": "integer", "default": 0 }
+  },
+  "required": ["user_id", "event"],
+  "additionalProperties": false
+}
