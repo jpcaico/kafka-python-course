@@ -117,11 +117,21 @@ class SchemaRegistryAdmin:
         try:
             schema_obj = self.build_schema(schema_str, schema_type, references)
             schema_id = self.client.register_schema(subject, schema_obj)
-            latest = self.client.get_latest_version(subject)
 
-            out = {"subject": subject, "id": schema_id, "version": latest.version}
+            registered_schema = self.client.lookup_schema(subject_name=subject, 
+                                                      schema=schema_obj)
+            assigned_version = registered_schema.version
+
+            latest_meta = self.client.get_latest_version(subject)
+            latest_version = latest_meta.version
+
+            out = {"subject": subject, "id": schema_id,
+                   "version": assigned_version,     
+                   "latest_after_register": latest_version}
+
             logger.info(
-                f"Registered {schema_type.upper()} for subject={subject},  id={schema_id} version={latest.version}"
+                f"Registered {schema_type.upper()} for subject={subject}, id={schema_id} "
+                f"assigned version={assigned_version}, latest now={latest_version}"
             )
             return out
         except SchemaRegistryError as e:
