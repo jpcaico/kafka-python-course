@@ -176,7 +176,7 @@ class SchemaRegistryAdmin:
                 logger.info(f"Subject = {subject}, compatibility = {lvl}")
                 return lvl
             lvl = self.client.get_compatibility()
-            logger.info("global compatibility = {lvl}")
+            logger.info(f"global compatibility = {lvl}")
             return lvl
         except SchemaRegistryError as e:
             logger.error(f"Failed to get compatibility: {e}")
