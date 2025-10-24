@@ -1,0 +1,47 @@
+kafka:
+  bootstrap_servers:
+    - "localhost:9094"
+    - "localhost:9095"
+    - "localhost:9096"
+
+  schema_registry_url: "http://localhost:8082"
+
+  topics:
+    purchases: "shopstream-purchases"
+
+regions:
+  US:
+    primary_broker: "localhost:9094"
+    currency: "USD"
+    partition: 0
+  EU:
+    primary_broker: "localhost:9095"
+    currency: "EUR"
+    partition: 1
+  ASIA:
+    primary_broker: "localhost:9096"
+    currency: "JPY"
+    partition: 2
+
+event_generation:
+  events_per_second: 2
+  batch_size: 10
+  user_id_range: [1000, 9999]
+  amount_range: [10.0, 500.0]
+
+
+product:
+  - {id: "PROD-001", name: "Wireless Mouse", category: "Electronics"}
+  - {id: "PROD-002", name: "Coffee Mug", category: "Home"}
+  - {id: "PROD-003", name: "Notebook", category: "Office"}
+  - {id: "PROD-004", name: "Water Bottle", category: "Sports"}
+  - {id: "PROD-005", name: "Desk Lamp", category: "Furniture"}
+  - {id: "PROD-006", name: "Phone Case", category: "Accessories"}
+  - {id: "PROD-007", name: "Backpack", category: "Bags"}
+  - {id: "PROD-008", name: "Headphones", category: "Electronics"}
+  - {id: "PROD-009", name: "Tent", category: "Camping"}
+  - {id: "PROD-010", name: "Baseball Bat", category: "Sports"}
+  - {id: "PROD-011", name: "Queen Size Bed", category: "Furniture"}
+  - {id: "PROD-012", name: "Coffee Mug", category: "Coffee Machine"}
+
+

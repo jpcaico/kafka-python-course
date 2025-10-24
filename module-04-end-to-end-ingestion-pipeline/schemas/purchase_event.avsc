@@ -1,0 +1,62 @@
+{
+  "type": "record",
+  "name": "PurchaseEvent",
+  "namespace": "com.shopstream.events",
+  "doc": "Schema for e-commerce purchase events in the ShopStream pipeline",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique identifier for this purchase event - enables deduplication and tracing"
+    },
+    {
+      "name": "user_id",
+      "type": "int",
+      "doc": "ID of the user making the purchase - used for partitioning and analytics"
+    },
+    {
+      "name": "region",
+      "type": {
+        "type": "enum",
+        "name": "Region",
+        "symbols": ["US", "EU", "ASIA"]
+      },
+      "doc": "Geographic region - constrains values and enables efficient partitioning"
+    },
+    {
+      "name": "product_id",
+      "type": "string",
+      "doc": "SKU or product identifier - joins with product catalog"
+    },
+    {
+      "name": "product_name",
+      "type": "string",
+      "doc": "Human-readable product name - denormalized for analytics efficiency"
+    },
+    {
+      "name": "quantity",
+      "type": "int",
+      "doc": "Number of items purchased - always positive in real systems"
+    },
+    {
+      "name": "amount",
+      "type": "double",
+      "doc": "Total purchase amount - monetary calculations require precision"
+    },
+    {
+      "name": "currency",
+      "type": {
+        "type": "enum",
+        "name": "Currency",
+        "symbols": ["USD", "EUR", "JPY"]
+      },
+      "doc": "Currency code - enum prevents invalid currency codes"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "Purchase timestamp - logical type ensures proper time handling"
+    }
+  ]
+}

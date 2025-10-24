@@ -56,7 +56,7 @@ class KafkaAdmin:
         
         topic_config = {}
 
-        if retention_ms is None:
+        if retention_ms is not None:
             topic_config['retention.ms'] = str(retention_ms)
 
         if cleanup_policy:
@@ -94,6 +94,8 @@ class KafkaAdmin:
             except KafkaException as e:
                 logger.error(f"Failed to create topic {topic}: {e}")
                 results[topic] = False
+
+        return results
 
 
     def list_topics(self) -> List[str]:
